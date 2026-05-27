@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: racs-controller
+  namespace: racs
+  labels:
+    app: racs-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: racs-controller
+  template:
+    metadata:
+      labels:
+        app: racs-controller
+    spec:
+      serviceAccountName: racs-controller
+      containers:
+        - name: racs-controller
+          image: nefks/racs-controller:latest
+          imagePullPolicy: Always

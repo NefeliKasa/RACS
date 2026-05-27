@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: racs
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: racs-controller
+  namespace: racs
+---
+apiVersion: rbac.authorization.k8s.io/v1 
+kind: ClusterRole
+metadata:
+  name: racs-controller
+rules:
+  - apiGroups: ["project.racs"]
+    resources: ["racs-configs"]
+    verbs: ["get", "list", "watch"]
+
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["create", "delete"]
+    
+  - apiGroups: [""]
+    resources: ["secrets", "configmaps", "services"]
+    verbs: ["create", "delete"]  
+    
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets"]
+    verbs: ["create", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: racs-controller
+subjects:
+  - kind: ServiceAccount
+    name: racs-controller
+    namespace: racs
+roleRef:
+  kind: ClusterRole
+  name: racs-controller 
+  apiGroup: rbac.authorization.k8s.io

@@ -1,0 +1,8 @@
+apiVersion: project.racs/v1
+kind: RacsConfig
+metadata:
+  name: default
+spec:
+  selection_policy: "random"
+  encoding_parameter_k: 2
+  encoding_parameter_n: 3

@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: racs-demo
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: racs-demo-secrets
+  namespace: racs-demo
+type: Opaque
+stringData:
+  API_BASE_URL: "http://racs-service.racs.svc.cluster.local:80"
+  
+  TEST_BUCKET: "racs-demo-test-bucket"
+  TEST_KEY: "racs-demo-test-file.txt"
+  
+  AZURE_CREDENTIALS: | 
+    {
+      "storage_account": "",
+      "client_id": "",
+      "tenant_id": "",
+      "client_secret": "" 
+    }
+  GOOGLE_CREDENTIALS: |
+    {
+      "type": "",
+      "project_id": "",
+      "private_key_id": "",
+      "private_key": "",
+      "client_email": "",
+      "client_id": "",
+      "auth_uri": "",
+      "token_uri": "",
+      "auth_provider_x509_cert_url": "",
+      "client_x509_cert_url": "",
+      "universe_domain": ""
+    }
+  AWS_CREDENTIALS: |
+    {
+      "aws_access_key_id": "",      
+      "aws_secret_access_key": "",
+      "region_name": ""    
+    }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: racs-demo-job
+  namespace: racs-demo
+  labels:
+    app: racs-demo
+spec:
+  ttlSecondsAfterFinished: 400
+  template:
+    spec:
+      containers:
+      - name: racs-server-demo
+        image: nefks/racs-server-demo:latest 
+        imagePullPolicy: Always
+        envFrom:
+        - secretRef:
+            name: racs-demo-secrets
+      restartPolicy: Never
+  backoffLimit: 1 

@@ -1,0 +1,4 @@
+zfec==1.6.0.0
+fastapi===0.136.0
+uvicorn==0.44.0
+pydantic==2.13.3
