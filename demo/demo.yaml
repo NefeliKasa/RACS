@@ -14,6 +14,8 @@ stringData:
   
   TEST_BUCKET: "racs-demo-test-bucket"
   TEST_KEY: "racs-demo-test-file.txt"
+
+  LOCAL_TXT_PATH: "test.txt"
   
   AZURE_CREDENTIALS: | 
     {

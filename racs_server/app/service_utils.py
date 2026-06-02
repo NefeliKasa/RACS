@@ -41,7 +41,7 @@ class Utils:
         response.raise_for_status()
 
         body = json.loads(response.json().get("data"))
-        logger.info(f"Received response from {service_url}: {body}")
+        logger.info(f"Received response from {service_url}: {str(body)[:100]}...")
 
         encoded_data = body.get("encoded_data")
         metadata = body.get("metadata")

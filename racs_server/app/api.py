@@ -43,15 +43,18 @@ def _get_session_authenticator(token: str = Depends(jwt_bearer)) -> Authenticato
         raise HTTPException(status_code=401, detail="Invalid token payload.")
 
     session_id = payload["sub"]
-    
+
     try:
         session_data_json = redis_client.get(session_id)
         if not session_data_json:
             raise HTTPException(status_code=401, detail="Session not found or expired.")
     except redis.RedisError as e:
         logger.error(f"Failed to retrieve session data for session {session_id}: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error. Could not retrieve session data.")
-    
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error. Could not retrieve session data.",
+        )
+
     session_data = json.loads(session_data_json)
 
     return Authenticator(
@@ -79,14 +82,14 @@ def login(request: AuthRequest):
         )
 
         session_id = str(uuid.uuid4())
-        token = signJWT(session_id)      
-        
+        token = signJWT(session_id)
+
         session_data = {
             "azure_auth_token": azure_token,
             "google_auth_token": google_token,
             "aws_auth_token": aws_token,
         }
-        
+
         try:
             redis_client.setex(session_id, session_timeout, json.dumps(session_data))
         except redis.RedisError as e:
@@ -173,7 +176,7 @@ def get_blob(request: BaseBlobRequest, token: str = Depends(jwt_bearer)):
     decode_service_response.raise_for_status()
 
     decoded_data = decode_service_response.json().get("decoded_data")
-    logger.info(f"Decoded data retrieved successfully: {decoded_data}")
+    logger.info(f"Decoded data retrieved successfully: {str(decoded_data)[:100]}...")
 
     return {"data": decoded_data}
 
@@ -201,39 +204,45 @@ def put_blob(request: UploadBlobRequest, token: str = Depends(jwt_bearer)):
     payload = {}
     for i, provider in enumerate(providers):
         if provider == "azure":
+            payload = {
+                "container": bucket,
+                "blob_name": key,
+                "blob": encoded_data_metadata[i],
+            }
+
             azure_results = Utils.put_service_data(
                 service_url=azure_service,
                 token=authenticator.azure_auth_token,
-                payload={
-                    "container": bucket,
-                    "blob_name": key,
-                    "blob": encoded_data_metadata[i],
-                },
+                payload=payload,
             )
 
         elif provider == "google":
+            payload = {
+                "bucket": bucket,
+                "blob_name": key,
+                "blob": encoded_data_metadata[i],
+            }
+
             google_results = Utils.put_service_data(
                 service_url=google_service,
                 token=authenticator.google_auth_token,
-                payload={
-                    "bucket": bucket,
-                    "blob_name": key,
-                    "blob": encoded_data_metadata[i],
-                },
+                payload=payload,
             )
 
         elif provider == "aws":
+            payload = {
+                "bucket": bucket,
+                "key": key,
+                "object": encoded_data_metadata[i],
+            }
+
             aws_results = Utils.put_service_data(
                 service_url=aws_service,
                 token=authenticator.aws_auth_token,
-                payload={
-                    "bucket": bucket,
-                    "key": key,
-                    "object": encoded_data_metadata[i],
-                },
+                payload=payload,
             )
 
-        logger.info(f"Putting data shard to {provider}: {payload}")
+        logger.info(f"Putting data shard to {provider}: {str(payload)[:100]}...")
 
     return {"message": "Blob uploaded successfully"}
 
@@ -258,42 +267,51 @@ def update_blob(request: UploadBlobRequest, token: str = Depends(jwt_bearer)):
         raise HTTPException(status_code=500, detail="Encoding service returned no data")
 
     providers = ["azure", "google", "aws"]
+    payload = {}
     for i, provider in enumerate(providers):
         if provider == "azure":
+            payload = {
+                "container": bucket,
+                "blob_name": key,
+                "blob": encoded_data_metadata[i],
+            }
+            
             azure_results = Utils.put_service_data(
                 service_url=azure_service,
                 token=authenticator.azure_auth_token,
-                payload={
-                    "container": bucket,
-                    "blob_name": key,
-                    "blob": encoded_data_metadata[i],
-                },
+                payload=payload,
                 overwrite=True,
             )
 
         elif provider == "google":
+            payload = {
+                "bucket": bucket,
+                "blob_name": key,
+                "blob": encoded_data_metadata[i],
+            }
+            
             google_results = Utils.put_service_data(
                 service_url=google_service,
                 token=authenticator.google_auth_token,
-                payload={
-                    "bucket": bucket,
-                    "blob_name": key,
-                    "blob": encoded_data_metadata[i],
-                },
+                payload=payload,
                 overwrite=True,
             )
 
         elif provider == "aws":
+            payload = {
+                "bucket": bucket,
+                "key": key,
+                "object": encoded_data_metadata[i],
+            }
+            
             aws_results = Utils.put_service_data(
                 service_url=aws_service,
                 token=authenticator.aws_auth_token,
-                payload={
-                    "bucket": bucket,
-                    "key": key,
-                    "object": encoded_data_metadata[i],
-                },
+                payload=payload,
                 overwrite=True,
             )
+
+        logger.info(f"Updating data shard to {provider}: {str(payload)[:100]}...")
 
     return {"message": "Blob updated successfully"}
 
@@ -347,15 +365,19 @@ def logout(token: str = Depends(jwt_bearer)):
         raise HTTPException(status_code=401, detail="Invalid token payload.")
 
     session_id = payload["sub"]
-    
+
     try:
         keys_deleted = redis_client.delete(session_id)
-        
+
         if keys_deleted == 0:
-            raise HTTPException(status_code=401, detail="Session not found or already expired.")
+            raise HTTPException(
+                status_code=401, detail="Session not found or already expired."
+            )
     except redis.RedisError as e:
         logger.error(f"Failed to delete session {session_id}: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error. Could not process logout.")
+        raise HTTPException(
+            status_code=500, detail="Internal server error. Could not process logout."
+        )
 
     logger.info(f"Session {session_id} logged out successfully.")
     return {"message": "Logged out successfully"}
